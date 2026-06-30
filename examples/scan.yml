@@ -1,0 +1,22 @@
+# Copy to .github/workflows/chainvet.yml in your Solidity project.
+name: ChainVet
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  security-events: write
+  contents: read
+
+jobs:
+  chainvet:
+    name: ChainVet scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: chainvet/chainvet-action@v1
+        with:
+          path: contracts
+          mode: hybrid
+          fail-on: high

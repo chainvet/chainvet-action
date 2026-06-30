@@ -1,0 +1,67 @@
+name: "ChainVet Scan"
+description: "Scan Solidity smart contracts with ChainVet and upload SARIF to GitHub code scanning."
+author: "ChainVet"
+branding:
+  icon: "shield"
+  color: "purple"
+
+inputs:
+  path:
+    description: "File or directory to scan."
+    required: false
+    default: "."
+  mode:
+    description: "Analysis mode: static | symbolic | fuzzing | hybrid."
+    required: false
+    default: "hybrid"
+  fail-on:
+    description: "Fail the job when a finding meets this severity: high | medium | low | none."
+    required: false
+    default: "high"
+  sarif-file:
+    description: "Path to write the SARIF report."
+    required: false
+    default: "chainvet.sarif"
+  upload-sarif:
+    description: "Upload the SARIF result to GitHub code scanning."
+    required: false
+    default: "true"
+  version:
+    description: "ChainVet git ref (branch or tag) to install chainvet-ci from."
+    required: false
+    default: "main"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install system dependencies (Z3)
+      shell: bash
+      run: sudo apt-get update && sudo apt-get install -y libz3-dev
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Install chainvet-ci
+      shell: bash
+      run: cargo install --git https://github.com/chainvet/chainvet --branch "${{ inputs.version }}" chainvet-ci
+
+    - name: Run ChainVet
+      id: scan
+      shell: bash
+      run: |
+        set +e
+        chainvet-ci "${{ inputs.path }}" \
+          --mode "${{ inputs.mode }}" \
+          --fail-on "${{ inputs.fail-on }}" \
+          --sarif "${{ inputs.sarif-file }}"
+        echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+
+    - name: Upload SARIF
+      if: ${{ inputs.upload-sarif == 'true' && always() }}
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ inputs.sarif-file }}
+
+    - name: Enforce fail-on threshold
+      shell: bash
+      run: exit ${{ steps.scan.outputs.exit_code }}
