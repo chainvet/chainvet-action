@@ -1,5 +1,5 @@
 # Copy to .github/workflows/chainvet.yml in your Solidity project.
-name: ChainVet
+name: Chainvet
 on:
   push:
     branches: [main]
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   chainvet:
-    name: ChainVet scan
+    name: Chainvet scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

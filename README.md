@@ -1,12 +1,12 @@
-# ChainVet GitHub Action
+# Chainvet GitHub Action
 
-Scan Solidity smart contracts with [ChainVet](https://github.com/chainvet/chainvet)
+Scan Solidity smart contracts with [Chainvet](https://github.com/chainvet/chainvet)
 in CI and surface findings in GitHub code scanning (the **Security** tab) via SARIF.
 
 ## Usage
 
 ```yaml
-name: ChainVet
+name: Chainvet
 on: [push, pull_request]
 
 permissions:
@@ -34,7 +34,7 @@ jobs:
 | `fail-on`      | `high`           | Fail the job when a finding meets this severity (`high`/`medium`/`low`/`none`). |
 | `sarif-file`   | `chainvet.sarif` | Where to write the SARIF report. |
 | `upload-sarif` | `true`           | Upload the SARIF to GitHub code scanning. |
-| `version`      | `main`           | ChainVet git ref to install `chainvet-ci` from. |
+| `version`      | `main`           | Chainvet git ref to install `chainvet-ci` from. |
 
 The action installs `chainvet-ci` from source (Z3 + Rust toolchain), runs the scan,
 uploads the SARIF even when the scan fails the threshold, and then exits non-zero

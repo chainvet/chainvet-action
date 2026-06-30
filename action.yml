@@ -1,6 +1,6 @@
-name: "ChainVet Scan"
-description: "Scan Solidity smart contracts with ChainVet and upload SARIF to GitHub code scanning."
-author: "ChainVet"
+name: "Chainvet Scan"
+description: "Scan Solidity smart contracts with Chainvet and upload SARIF to GitHub code scanning."
+author: "Chainvet"
 branding:
   icon: "shield"
   color: "purple"
@@ -27,7 +27,7 @@ inputs:
     required: false
     default: "true"
   version:
-    description: "ChainVet git ref (branch or tag) to install chainvet-ci from."
+    description: "Chainvet git ref (branch or tag) to install chainvet-ci from."
     required: false
     default: "main"
 
@@ -45,7 +45,7 @@ runs:
       shell: bash
       run: cargo install --git https://github.com/chainvet/chainvet --branch "${{ inputs.version }}" chainvet-ci
 
-    - name: Run ChainVet
+    - name: Run Chainvet
       id: scan
       shell: bash
       run: |
