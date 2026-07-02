@@ -18,6 +18,12 @@ inputs:
     description: "Fail the job when a finding meets this severity: high | medium | low | none."
     required: false
     default: "high"
+  fail-on-confidence:
+    description: "Only fail on findings at this confidence tier or above: candidate | confirmed.
+      'candidate' (default) gates on any finding; 'confirmed' gates only on findings
+      corroborated by symbolic/fuzz execution, letting static-only candidates through."
+    required: false
+    default: "candidate"
   sarif-file:
     description: "Path to write the SARIF report."
     required: false
@@ -100,6 +106,7 @@ runs:
         chainvet-ci "${{ inputs.path }}" \
           --mode "${{ inputs.mode }}" \
           --fail-on "${{ inputs.fail-on }}" \
+          --fail-on-confidence "${{ inputs.fail-on-confidence }}" \
           --sarif "${{ inputs.sarif-file }}"
         echo "exit_code=$?" >> "$GITHUB_OUTPUT"
 

@@ -18,7 +18,7 @@ jobs:
           a = yaml.safe_load(open('action.yml'))
           assert a.get('name') and a.get('description'), 'name/description required'
           assert a['runs']['using'] == 'composite', 'must be a composite action'
-          req = ['path', 'mode', 'fail-on', 'sarif-file', 'upload-sarif', 'version']
+          req = ['path', 'mode', 'fail-on', 'fail-on-confidence', 'sarif-file', 'upload-sarif', 'version']
           missing = [i for i in req if i not in a.get('inputs', {})]
           assert not missing, f'missing inputs: {missing}'
           print('action.yml OK:', a['name'], '| inputs:', list(a['inputs']))

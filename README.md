@@ -32,6 +32,7 @@ jobs:
 | `path`         | `.`              | File or directory to scan. |
 | `mode`         | `hybrid`         | `static` \| `symbolic` \| `fuzzing` \| `hybrid`. |
 | `fail-on`      | `high`           | Fail the job when a finding meets this severity (`high`/`medium`/`low`/`none`). |
+| `fail-on-confidence` | `candidate` | Only fail on findings at this confidence tier or above (`candidate`/`confirmed`). `confirmed` gates only on findings corroborated by symbolic/fuzz execution. |
 | `sarif-file`   | `chainvet.sarif` | Where to write the SARIF report. |
 | `upload-sarif` | `true`           | Upload the SARIF to GitHub code scanning. |
 | `version`      | `latest`         | Chainvet release to use — a tag like `v0.2.0`, or `latest`. |
