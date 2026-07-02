@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    name: Validate action.yml
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check the action manifest
+        run: |
+          python3 -c "
+          import yaml
+          a = yaml.safe_load(open('action.yml'))
+          assert a.get('name') and a.get('description'), 'name/description required'
+          assert a['runs']['using'] == 'composite', 'must be a composite action'
+          req = ['path', 'mode', 'fail-on', 'sarif-file', 'upload-sarif', 'version']
+          missing = [i for i in req if i not in a.get('inputs', {})]
+          assert not missing, f'missing inputs: {missing}'
+          print('action.yml OK:', a['name'], '| inputs:', list(a['inputs']))
+          "
+
+  run:
+    name: Run against a vulnerable contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # Exercise the action end-to-end (install chainvet-ci -> scan -> SARIF).
+      # fail-on: none so findings don't fail this self-test; upload-sarif: false
+      # so the action's own CI needs no code-scanning permissions.
+      - name: Run the action
+        uses: ./
+        with:
+          path: test/contracts
+          fail-on: none
+          upload-sarif: false
+
+      - name: Assert the SARIF was produced with findings
+        run: |
+          set -euo pipefail
+          test -f chainvet.sarif || { echo "no SARIF written"; exit 1; }
+          n=$(python3 -c "import json; print(len(json.load(open('chainvet.sarif'))['runs'][0]['results']))")
+          echo "SARIF results: $n"
+          [ "$n" -gt 0 ] || { echo "expected findings on the vulnerable contract"; exit 1; }
+          # (SARIF shape/location validity is chainvet-ci's own responsibility and
+          # is covered by its unit tests; here we only verify the action runs end
+          # to end and emits a report — independent of the chainvet-ci version.)
