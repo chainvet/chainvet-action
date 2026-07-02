@@ -34,12 +34,14 @@ jobs:
 | `fail-on`      | `high`           | Fail the job when a finding meets this severity (`high`/`medium`/`low`/`none`). |
 | `sarif-file`   | `chainvet.sarif` | Where to write the SARIF report. |
 | `upload-sarif` | `true`           | Upload the SARIF to GitHub code scanning. |
-| `version`      | `main`           | Chainvet git ref to install `chainvet-ci` from. |
+| `version`      | `latest`         | Chainvet release to use — a tag like `v0.2.0`, or `latest`. |
 
-The action installs `chainvet-ci` from source (Z3 + Rust toolchain), runs the scan,
-uploads the SARIF even when the scan fails the threshold, and then exits non-zero
-if `fail-on` was met — so the SARIF always lands in code scanning while still gating
-the job.
+The action installs `chainvet-ci` by **downloading the prebuilt binary** for the
+selected release (seconds), falling back to a **from-source build** (Z3 + Rust) if
+no matching prebuilt exists — e.g. a branch name in `version`, or a non-x86_64-Linux
+runner. It runs the scan, uploads the SARIF even when the scan fails the threshold,
+and then exits non-zero if `fail-on` was met — so the SARIF always lands in code
+scanning while still gating the job.
 
 > This action is a thin wrapper over the `chainvet-ci` frontend. For local use,
 > `cargo install --git https://github.com/chainvet/chainvet chainvet-ci` and run

@@ -27,23 +27,70 @@ inputs:
     required: false
     default: "true"
   version:
-    description: "Chainvet git ref (branch or tag) to install chainvet-ci from."
+    description: "Chainvet release to use: a tag like v0.2.0, or 'latest'. Downloads the
+      prebuilt chainvet-ci binary; falls back to building from source if no matching
+      prebuilt is available (e.g. a branch name, or a non-x86_64-Linux runner)."
     required: false
-    default: "main"
+    default: "latest"
 
 runs:
   using: "composite"
   steps:
-    - name: Install system dependencies (Z3)
-      shell: bash
-      run: sudo apt-get update && sudo apt-get install -y libz3-dev
-
-    - name: Install Rust toolchain
-      uses: dtolnay/rust-toolchain@stable
-
     - name: Install chainvet-ci
       shell: bash
-      run: cargo install --git https://github.com/chainvet/chainvet --branch "${{ inputs.version }}" chainvet-ci
+      env:
+        CHAINVET_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        repo="chainvet/chainvet"
+        target="x86_64-unknown-linux-gnu"
+
+        # Resolve a release tag to download ("" if none applies).
+        if [ "$CHAINVET_VERSION" = "latest" ]; then
+          tag="$(curl -fsSL "https://api.github.com/repos/$repo/releases/latest" \
+                 | grep -oE '"tag_name"[[:space:]]*:[[:space:]]*"[^"]+"' | head -1 | cut -d'"' -f4 || true)"
+        else
+          tag="$CHAINVET_VERSION"
+        fi
+
+        installed=""
+        # Fast path: download the prebuilt chainvet-ci binary.
+        if [ -n "${tag:-}" ]; then
+          asset="chainvet-ci-${tag}-${target}.tar.gz"
+          url="https://github.com/$repo/releases/download/${tag}/${asset}"
+          echo "==> trying prebuilt: $url"
+          if curl -fSL "$url" -o /tmp/chainvet-ci.tar.gz; then
+            # The prebuilt binary links libz3 dynamically; install the runtime.
+            sudo apt-get update
+            sudo apt-get install -y libz3-4 || sudo apt-get install -y libz3-dev
+            sudo tar -C /usr/local/bin -xzf /tmp/chainvet-ci.tar.gz chainvet-ci
+            sudo chmod +x /usr/local/bin/chainvet-ci
+            installed="prebuilt $tag"
+          else
+            echo "==> no prebuilt for '$tag'"
+          fi
+        fi
+
+        # Fallback: build from source (Z3 + Rust). Slower, but works for any ref/arch.
+        if [ -z "$installed" ]; then
+          echo "==> building chainvet-ci from source"
+          sudo apt-get update
+          sudo apt-get install -y libz3-dev
+          if ! command -v cargo >/dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal
+            export PATH="$HOME/.cargo/bin:$PATH"
+          fi
+          ref="$CHAINVET_VERSION"
+          [ "$ref" = "latest" ] && ref="main"
+          if printf '%s' "$ref" | grep -qE '^v[0-9]'; then
+            cargo install --git "https://github.com/$repo" --tag "$ref" chainvet-ci
+          else
+            cargo install --git "https://github.com/$repo" --branch "$ref" chainvet-ci
+          fi
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          installed="source $ref"
+        fi
+        echo "==> installed chainvet-ci ($installed)"
 
     - name: Run Chainvet
       id: scan
