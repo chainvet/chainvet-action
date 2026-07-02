@@ -1,0 +1,36 @@
+name: Release
+
+# When you publish a GitHub Release (tag vX.Y.Z — optionally ticking "Publish
+# this Action to the GitHub Marketplace" on the release form), move the sliding
+# major-version tag (vX) to point at it, so everyone pinned to `@vX` gets the
+# update without editing their workflow. Marketplace listing itself is the manual
+# checkbox on that form; GitHub has no API to automate it.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write # push the moved major tag
+
+jobs:
+  move-major-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Move the major version tag (e.g. v1 -> v1.2.3)
+        run: |
+          set -euo pipefail
+          tag="${{ github.event.release.tag_name }}"
+          case "$tag" in
+            v[0-9]*) ;;
+            *) echo "tag '$tag' is not a vX.Y.Z release tag — skipping"; exit 0 ;;
+          esac
+          major="${tag%%.*}"    # v1.2.3 -> v1
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -f "$major" "$tag"
+          git push -f origin "refs/tags/$major"
+          echo "moved $major -> $tag"
