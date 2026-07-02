@@ -111,4 +111,12 @@ runs:
 
     - name: Enforce fail-on threshold
       shell: bash
-      run: exit ${{ steps.scan.outputs.exit_code }}
+      run: |
+        code="${{ steps.scan.outputs.exit_code }}"
+        if [ "$code" -ne 0 ]; then
+          echo "::error title=Chainvet::Findings at or above severity '${{ inputs.fail-on }}' were found — failing the check. The SARIF was uploaded to Security → Code scanning. To report without failing the job, set 'fail-on: none'."
+          echo "Chainvet: findings met fail-on='${{ inputs.fail-on }}' → failing the job (exit $code)."
+        else
+          echo "Chainvet: no findings at or above '${{ inputs.fail-on }}' — passing."
+        fi
+        exit "$code"
