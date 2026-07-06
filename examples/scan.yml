@@ -19,4 +19,4 @@ jobs:
         with:
           path: contracts
           mode: hybrid
-          fail-on: high
+          fail-on-severity: high

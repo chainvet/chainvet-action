@@ -18,7 +18,7 @@ jobs:
           a = yaml.safe_load(open('action.yml'))
           assert a.get('name') and a.get('description'), 'name/description required'
           assert a['runs']['using'] == 'composite', 'must be a composite action'
-          req = ['path', 'mode', 'fail-on', 'fail-on-confidence', 'sarif-file', 'upload-sarif', 'version']
+          req = ['path', 'mode', 'fail-on-severity', 'fail-on-confidence', 'no-fail', 'sarif-file', 'upload-sarif', 'version']
           missing = [i for i in req if i not in a.get('inputs', {})]
           assert not missing, f'missing inputs: {missing}'
           print('action.yml OK:', a['name'], '| inputs:', list(a['inputs']))
@@ -31,13 +31,13 @@ jobs:
       - uses: actions/checkout@v5
 
       # Exercise the action end-to-end (install chainvet-ci -> scan -> SARIF).
-      # fail-on: none so findings don't fail this self-test; upload-sarif: false
+      # no-fail: true so findings don't fail this self-test; upload-sarif: false
       # so the action's own CI needs no code-scanning permissions.
       - name: Run the action
         uses: ./
         with:
           path: test/contracts
-          fail-on: none
+          no-fail: true
           upload-sarif: false
 
       - name: Assert the SARIF was produced with findings

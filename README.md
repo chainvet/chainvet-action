@@ -22,7 +22,7 @@ jobs:
         with:
           path: contracts
           mode: hybrid
-          fail-on: high
+          fail-on-severity: high
 ```
 
 ## Inputs
@@ -31,8 +31,9 @@ jobs:
 |----------------|------------------|-------------|
 | `path`         | `.`              | File or directory to scan. |
 | `mode`         | `hybrid`         | `static` \| `symbolic` \| `fuzzing` \| `hybrid`. |
-| `fail-on`      | `high`           | Fail the job when a finding meets this severity (`high`/`medium`/`low`/`none`). |
-| `fail-on-confidence` | `candidate` | Only fail on findings at this confidence tier or above (`candidate`/`confirmed`). `confirmed` gates only on findings corroborated by symbolic/fuzz execution. |
+| `fail-on-severity` | `high`       | Fail the job when a finding meets this severity (`high`/`medium`/`low`). |
+| `fail-on-confidence` | `low`      | Only fail on findings at this confidence or above (`high`/`medium`/`low`). `high` gates only on the most precise detections, letting lower-confidence findings through. |
+| `no-fail`      | `false`          | Run and upload SARIF but never fail the job (report-only). Mutually exclusive with `fail-on-severity`/`fail-on-confidence`. |
 | `sarif-file`   | `chainvet.sarif` | Where to write the SARIF report. |
 | `upload-sarif` | `true`           | Upload the SARIF to GitHub code scanning. |
 | `version`      | `latest`         | Chainvet release to use — a tag like `v0.2.0`, or `latest`. |
@@ -41,7 +42,7 @@ The action installs `chainvet-ci` by **downloading the prebuilt binary** for the
 selected release (seconds), falling back to a **from-source build** (Z3 + Rust) if
 no matching prebuilt exists — e.g. a branch name in `version`, or a non-x86_64-Linux
 runner. It runs the scan, uploads the SARIF even when the scan fails the threshold,
-and then exits non-zero if `fail-on` was met — so the SARIF always lands in code
+and then exits non-zero if `fail-on-severity` was met — so the SARIF always lands in code
 scanning while still gating the job.
 
 > This action is a thin wrapper over the `chainvet-ci` frontend. For local use,

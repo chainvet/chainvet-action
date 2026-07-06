@@ -14,16 +14,22 @@ inputs:
     description: "Analysis mode: static | symbolic | fuzzing | hybrid."
     required: false
     default: "hybrid"
-  fail-on:
-    description: "Fail the job when a finding meets this severity: high | medium | low | none."
+  fail-on-severity:
+    description: "Fail the job when a finding meets this severity: high | medium | low.
+      Set 'no-fail: true' to report without failing."
     required: false
     default: "high"
   fail-on-confidence:
-    description: "Only fail on findings at this confidence tier or above: candidate | confirmed.
-      'candidate' (default) gates on any finding; 'confirmed' gates only on findings
-      corroborated by symbolic/fuzz execution, letting static-only candidates through."
+    description: "Only fail on findings at this confidence or above: high | medium | low.
+      'low' (default) gates on any finding; 'high' gates only on the most precise
+      detections, letting lower-confidence findings through."
     required: false
-    default: "candidate"
+    default: "low"
+  no-fail:
+    description: "Run the scan and upload SARIF but never fail the job (report-only).
+      Mutually exclusive with fail-on-severity / fail-on-confidence."
+    required: false
+    default: "false"
   sarif-file:
     description: "Path to write the SARIF report."
     required: false
@@ -103,11 +109,15 @@ runs:
       shell: bash
       run: |
         set +e
-        chainvet-ci "${{ inputs.path }}" \
-          --mode "${{ inputs.mode }}" \
-          --fail-on "${{ inputs.fail-on }}" \
-          --fail-on-confidence "${{ inputs.fail-on-confidence }}" \
-          --sarif "${{ inputs.sarif-file }}"
+        args=( "${{ inputs.path }}" --mode "${{ inputs.mode }}" --sarif "${{ inputs.sarif-file }}" )
+        # --no-fail is mutually exclusive with the fail-on-* flags, so pass one or the other.
+        if [ "${{ inputs.no-fail }}" = "true" ]; then
+          args+=( --no-fail )
+        else
+          args+=( --fail-on-severity "${{ inputs.fail-on-severity }}" \
+                  --fail-on-confidence "${{ inputs.fail-on-confidence }}" )
+        fi
+        chainvet-ci "${args[@]}"
         echo "exit_code=$?" >> "$GITHUB_OUTPUT"
 
     - name: Upload SARIF
@@ -116,14 +126,16 @@ runs:
       with:
         sarif_file: ${{ inputs.sarif-file }}
 
-    - name: Enforce fail-on threshold
+    - name: Enforce fail thresholds
       shell: bash
       run: |
         code="${{ steps.scan.outputs.exit_code }}"
-        if [ "$code" -ne 0 ]; then
-          echo "::error title=Chainvet::Findings at or above severity '${{ inputs.fail-on }}' were found — failing the check. The SARIF was uploaded to Security → Code scanning. Set 'fail-on: none' to report without failing the job."
-          echo "Chainvet: findings met fail-on='${{ inputs.fail-on }}' → failing the job (exit $code)."
+        if [ "${{ inputs.no-fail }}" = "true" ]; then
+          echo "Chainvet: report-only (no-fail) — SARIF uploaded, job not gated."
+        elif [ "$code" -ne 0 ]; then
+          echo "::error title=Chainvet::Findings at or above severity '${{ inputs.fail-on-severity }}' were found — failing the check. The SARIF was uploaded to Security → Code scanning. Set 'no-fail: true' to report without failing the job."
+          echo "Chainvet: findings met fail-on-severity='${{ inputs.fail-on-severity }}' → failing the job (exit $code)."
         else
-          echo "Chainvet: no findings at or above '${{ inputs.fail-on }}' — passing."
+          echo "Chainvet: no findings at or above '${{ inputs.fail-on-severity }}' — passing."
         fi
         exit "$code"
